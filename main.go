@@ -18,26 +18,19 @@ func main() {
 
 	dec := json.NewDecoder(os.Stdin)
 
-	var (
-		j   interface{}
-		err error
-	)
+	var j interface{}
 
 	for dec.More() {
-		err = dec.Decode(&j)
+		err := dec.Decode(&j)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			break
+			os.Exit(1)
 		}
 		b, err := json.MarshalIndent(&j, *prefix, *indent)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			break
+			os.Exit(1)
 		}
 		fmt.Println(string(b))
 	}
-	if err != nil {
-		os.Exit(1)
-	}
-
 }
