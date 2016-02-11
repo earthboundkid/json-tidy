@@ -13,24 +13,27 @@ var (
 	indent = flag.String("indent", "\t", "Identation string")
 )
 
+func die(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
 func main() {
 	flag.Parse()
 
 	dec := json.NewDecoder(os.Stdin)
 
-	var j interface{}
+	var data interface{}
 
 	for dec.More() {
-		err := dec.Decode(&j)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		b, err := json.MarshalIndent(&j, *prefix, *indent)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		fmt.Println(string(b))
+		die(dec.Decode(&data))
+
+		b, err := json.MarshalIndent(&data, *prefix, *indent)
+		die(err)
+
+		_, err = os.Stdout.Write(b)
+		die(err)
 	}
 }
