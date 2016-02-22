@@ -36,4 +36,6 @@ func main() {
 		_, err = os.Stdout.Write(b)
 		die(err)
 	}
+	// Trailing newline
+	os.Stdout.Write([]byte{'\n'})
 }
