@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -23,17 +24,13 @@ func die(err error) {
 func main() {
 	flag.Parse()
 
-	dec := json.NewDecoder(os.Stdin)
+	var input, output bytes.Buffer
 
-	var data interface{}
+	input.ReadFrom(os.Stdin)
 
-	for dec.More() {
-		die(dec.Decode(&data))
+	die(json.Indent(&output, input.Bytes(), *prefix, *indent))
 
-		b, err := json.MarshalIndent(&data, *prefix, *indent)
-		die(err)
+	output.WriteByte('\n')
 
-		_, err = os.Stdout.Write(b)
-		die(err)
-	}
+	output.WriteTo(os.Stdout)
 }
