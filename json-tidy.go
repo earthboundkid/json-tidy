@@ -3,8 +3,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -23,7 +27,29 @@ func die(err error) {
 func main() {
 	flag.Parse()
 
-	dec := json.NewDecoder(os.Stdin)
+	if flag.NArg() > 1 {
+		die(errors.New("Too many arguments"))
+	}
+
+	var src io.Reader = os.Stdin
+	if arg := flag.Arg(0); arg != "" && arg != "-" {
+		if u, err := url.Parse(arg); err == nil &&
+			// It's a URL
+			u.Scheme == "http" || u.Scheme == "https" {
+			rsp, err := http.Get(arg)
+			die(err)
+			defer rsp.Body.Close()
+			src = rsp.Body
+		} else {
+			// It's a file
+			f, err := os.Open(arg)
+			die(err)
+			defer f.Close()
+			src = f
+		}
+	}
+
+	dec := json.NewDecoder(src)
 
 	var data interface{}
 
