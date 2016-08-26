@@ -25,9 +25,18 @@ func die(err error) {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprint(os.Stderr, `Usage of json-tidy:
+
+json-tidy [opts] [file|url|-]
+        Gets input (defaults to stdin) and prints clean json to stdout.
+`)
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 
 	if flag.NArg() > 1 {
+		flag.Usage()
 		die(errors.New("Too many arguments"))
 	}
 
