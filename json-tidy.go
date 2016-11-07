@@ -59,6 +59,7 @@ json-tidy [opts] [file|url|-]
 	}
 
 	dec := json.NewDecoder(src)
+	dec.UseNumber() // Preserve number formatting
 
 	var data interface{}
 
