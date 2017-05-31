@@ -17,14 +17,14 @@ var (
 	indent = flag.String("indent", "\t", "Identation string")
 )
 
-func die(err error) {
-	if err != nil {
+func main() {
+	if err := Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func main() {
+func Run() (err error) {
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, `Usage of json-tidy:
 
@@ -37,7 +37,7 @@ json-tidy [opts] [file|url|-]
 
 	if flag.NArg() > 1 {
 		flag.Usage()
-		die(errors.New("Too many arguments"))
+		return errors.New("Too many arguments")
 	}
 
 	var src io.Reader = os.Stdin
@@ -46,14 +46,18 @@ json-tidy [opts] [file|url|-]
 			// It's a URL
 			u.Scheme == "http" || u.Scheme == "https" {
 			rsp, err := http.Get(arg)
-			die(err)
-			defer rsp.Body.Close()
+			if err != nil {
+				return err
+			}
+			defer DeferClose(&err, rsp.Body.Close)
 			src = rsp.Body
 		} else {
 			// It's a file
 			f, err := os.Open(arg)
-			die(err)
-			defer f.Close()
+			if err != nil {
+				return err
+			}
+			defer DeferClose(&err, f.Close)
 			src = f
 		}
 	}
@@ -64,14 +68,29 @@ json-tidy [opts] [file|url|-]
 	var data interface{}
 
 	for dec.More() {
-		die(dec.Decode(&data))
+		err = dec.Decode(&data)
+		if err != nil {
+			return err
+		}
 
 		b, err := json.MarshalIndent(&data, *prefix, *indent)
-		die(err)
+		if err != nil {
+			return err
+		}
 
 		_, err = os.Stdout.Write(b)
-		die(err)
+		if err != nil {
+			return err
+		}
 	}
 	// Trailing newline
-	os.Stdout.Write([]byte{'\n'})
+	_, err = os.Stdout.Write([]byte{'\n'})
+	return err
+}
+
+func DeferClose(err *error, f func() error) {
+	newErr := f()
+	if *err == nil {
+		*err = newErr
+	}
 }
