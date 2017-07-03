@@ -1,4 +1,4 @@
-# json-tidy
+# json-tidy [![GoDoc](https://godoc.org/github.com/carlmjohnson/json-tidy?status.svg)](https://godoc.org/github.com/carlmjohnson/json-tidy) [![Go Report Card](https://goreportcard.com/badge/github.com/carlmjohnson/json-tidy)](https://goreportcard.com/report/github.com/carlmjohnson/json-tidy)
 Pretty prints JSON
 
 ## Installation
