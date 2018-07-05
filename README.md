@@ -17,6 +17,8 @@ Usage of json-tidy:
 
 json-tidy [opts] [file|url|-]
         Gets input (defaults to stdin) and prints clean json to stdout.
+  -html-safe
+        Escape special characters for easy embedding in HTML
   -indent string
         Identation string (default "\t")
   -prefix string

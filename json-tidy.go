@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	prefix = flag.String("prefix", "", "Prefix string")
-	indent = flag.String("indent", "\t", "Identation string")
+	prefix   = flag.String("prefix", "", "Prefix string")
+	indent   = flag.String("indent", "\t", "Identation string")
+	htmlSafe = flag.Bool("html-safe", false, "Escape special characters for easy embedding in HTML")
 )
 
 func main() {
@@ -73,12 +74,10 @@ json-tidy [opts] [file|url|-]
 			return err
 		}
 
-		b, err := json.MarshalIndent(&data, *prefix, *indent)
-		if err != nil {
-			return err
-		}
-
-		_, err = os.Stdout.Write(b)
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent(*prefix, *indent)
+		enc.SetEscapeHTML(*htmlSafe)
+		err = enc.Encode(&data)
 		if err != nil {
 			return err
 		}
