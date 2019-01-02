@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"os"
+
+	"github.com/carlmjohnson/errors"
+	"github.com/carlmjohnson/flagext"
 )
 
 func main() {
@@ -37,29 +37,12 @@ json-tidy [opts] <file|url|->...
 	if len(args) == 0 {
 		args = []string{""}
 	}
-
 	for _, arg := range args {
-		var src io.Reader = os.Stdin
-		if arg != "" && arg != "-" {
-			if u, err := url.Parse(arg); err == nil &&
-				// It's a URL
-				u.Scheme == "http" || u.Scheme == "https" {
-				rsp, err := http.Get(arg)
-				if err != nil {
-					return err
-				}
-				defer DeferClose(&err, rsp.Body.Close)
-				src = rsp.Body
-			} else {
-				// It's a file
-				f, err := os.Open(arg)
-				if err != nil {
-					return err
-				}
-				defer DeferClose(&err, f.Close)
-				src = f
-			}
+		src := flagext.FileOrURL(flagext.StdIO, nil)
+		if err = src.Set(arg); err != nil {
+			return err
 		}
+		defer errors.Defer(&err, src.Close)
 
 		dec := json.NewDecoder(src)
 		dec.UseNumber() // Preserve number formatting
@@ -82,11 +65,4 @@ json-tidy [opts] <file|url|->...
 		}
 	}
 	return nil
-}
-
-func DeferClose(err *error, f func() error) {
-	newErr := f()
-	if *err == nil {
-		*err = newErr
-	}
 }
