@@ -2,9 +2,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/carlmjohnson/errors"
@@ -51,7 +53,12 @@ func tidyPrint(arg, prefix, indent string, htmlSafe bool) (err error) {
 	}
 	defer errors.Defer(&err, src.Close)
 
-	dec := json.NewDecoder(src)
+	b, err := ioutil.ReadAll(src)
+	if err != nil {
+		return fmt.Errorf("problem with %q: %v\n", arg, err)
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.UseNumber() // Preserve number formatting
 
 	var data interface{}
