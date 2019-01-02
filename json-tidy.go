@@ -17,21 +17,24 @@ func main() {
 	os.Exit(errors.Execute(Run, nil))
 }
 
-func Run(args []string) error {
+func Run(args []string) (err error) {
 	fl := flag.NewFlagSet("json-tidy", flag.ContinueOnError)
 	prefix := fl.String("prefix", "", "Prefix string")
 	indent := fl.String("indent", "\t", "Identation string")
 	htmlSafe := fl.Bool("html-safe", false, "Escape special characters for easy embedding in HTML")
-
+	dst := flagext.FileWriter(flagext.StdIO)
+	fl.Var(dst, "output", "write tidy JSON to `file`")
 	fl.Usage = func() {
-		fmt.Fprint(fl.Output(), `Usage of json-tidy:
+		fmt.Fprint(fl.Output(), `Gets input files and URLs (defaults to stdin) and outputs tidy JSON.
+
+Usage of json-tidy:
 
 json-tidy [opts] <file|url|->...
-        Gets input (defaults to stdin) and prints clean json to stdout.
+
 `)
 		fl.PrintDefaults()
 	}
-	if err := fl.Parse(args); err != nil {
+	if err = fl.Parse(args); err != nil {
 		return flag.ErrHelp
 	}
 
@@ -39,14 +42,20 @@ json-tidy [opts] <file|url|->...
 	if len(args) == 0 {
 		args = []string{flagext.StdIO}
 	}
+
+	enc := json.NewEncoder(dst)
+	enc.SetIndent(*prefix, *indent)
+	enc.SetEscapeHTML(*htmlSafe)
+	defer errors.Defer(&err, dst.Close)
+
 	var errs errors.Slice
 	for _, arg := range args {
-		errs.Push(tidyPrint(arg, *prefix, *indent, *htmlSafe))
+		errs.Push(tidyPrint(arg, enc))
 	}
 	return errs.Merge()
 }
 
-func tidyPrint(arg, prefix, indent string, htmlSafe bool) (err error) {
+func tidyPrint(arg string, enc *json.Encoder) (err error) {
 	src := flagext.FileOrURL(flagext.StdIO, nil)
 	if err = src.Set(arg); err != nil {
 		return fmt.Errorf("problem with %q: %v\n", arg, err)
@@ -64,17 +73,12 @@ func tidyPrint(arg, prefix, indent string, htmlSafe bool) (err error) {
 	var data interface{}
 
 	for dec.More() {
-		err = dec.Decode(&data)
-		if err != nil {
+		if err = dec.Decode(&data); err != nil {
 			return fmt.Errorf("problem with %q: %v\n", arg, err)
 		}
 
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent(prefix, indent)
-		enc.SetEscapeHTML(htmlSafe)
-		err = enc.Encode(&data)
-		if err != nil {
-			return fmt.Errorf("problem with %q: %v\n", arg, err)
+		if err = enc.Encode(&data); err != nil {
+			return fmt.Errorf("cannot write out tidy %q: %v\n", arg, err)
 		}
 	}
 	return nil
